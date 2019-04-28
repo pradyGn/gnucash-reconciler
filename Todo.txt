@@ -1,0 +1,4 @@
+- Search for multi attachments both directions first, then identify missing
+- Fix import to handle transactions already present in the table
+- Update from float to decimal for multi transaction linking
+- Check and update multi-item linking logic
