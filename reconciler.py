@@ -100,13 +100,16 @@ def process_multiple_matches(source, matches, source_table):
 def get_combinations(amt_remaining, unmatched, cur_set, valid_sets):
     logger.debug("unmatched is size {}".format(len(unmatched)))
     cur_set = cur_set.copy()
+    logger.debug("new method call, amount remaining is {}, cur_set is {}, have {} valid sets".format(amt_remaining, [entry['Amount'] for entry in cur_set], len(valid_sets)))
     for idx, entry in unmatched.iterrows():
         amt = entry['Amount']
+        logger.debug("checking for amount {}".format(entry['Amount']))
         if abs(amt - amt_remaining) < float_err:
+            logger.debug("amount matches amount remaining, adding current set to valid sets")
             cur_set.append(entry)
             valid_sets.append(cur_set)
         elif abs(amt) < abs(amt_remaining):
-            logger.debug("amount is {}, {} remaining", abs(amt), abs(amt_remaining))
+            logger.debug("amount is less than amount remaining, moving to current set and continuing")
             cur_set.append(entry)
             try:
                 unmatched.drop(idx, inplace=True)
@@ -191,9 +194,9 @@ def process_no_matches(source, source_table, ignore_missing=False):
             link_multiple(target_table, potentials[idx], transaction_id)
 
     else:
-    	if not ignore_missing:
-	        logger.info("No entry found for:\n{}, press enter to continue", source)
-	        input()
+        if not ignore_missing:
+            logger.info("No entry found for:\n{}, press enter to continue", source)
+            input()
 
 
 def process_matches(source, matches, source_table, singles_only, ignore_missing=False):
@@ -215,7 +218,7 @@ def unlink_all_transactions():
 
 def reconcile(exact_only, reset_transactions):
     logger.remove()
-    logger.add(sys.stderr, format="{time} {level} {message}", level="INFO")
+    logger.add(sys.stderr, format="{time} {level} {message}", level="DEBUG")
     if reset_transactions:
         logger.info("unlinking all transactions")
         unlink_all_transactions()

@@ -155,17 +155,17 @@ def dates_are_valid(start_date, end_date, source):
 
     # validate batch to ensure no overlap
     # case 1 : supplied end date >= start date and supplied start date <= end date - BAD
-    pre_overlap_query = "SELECT * FROM Batch WHERE `Source` = '{source}' AND `StartDate` <= '{end_date}' AND 'EndDate' >= '{start_date}'".format(source=source, start_date=start_date, end_date=end_date)
+    pre_overlap_query = "SELECT * FROM Batch WHERE `Source` = '{source}' AND `StartDate` <= '{end_date}' AND `EndDate` >= '{start_date}'".format(source=source, start_date=start_date, end_date=end_date)
     pre_results = pd.read_sql_query(pre_overlap_query, engine)
     if len(pre_results) != 0:
-        print("Found overlapping batch, aborting: \n{}".format(str(pre_results)))
+        print("Found overlapping batch in case 1, aborting: \n{}".format(str(pre_results)))
         return False
 
     # case 2 : supplied end date <= start date and supplied end date >= start date - BAD
-    mid_overlap_query = "SELECT * FROM Batch WHERE `Source` = '{source}' AND `StartDate` >= '{start_date}' AND 'StartDate' <= '{end_date}'".format(source=source, start_date=start_date, end_date=end_date)
+    mid_overlap_query = "SELECT * FROM Batch WHERE `Source` = '{source}' AND `StartDate` >= '{start_date}' AND `StartDate` <= '{end_date}'".format(source=source, start_date=start_date, end_date=end_date)
     mid_results = pd.read_sql_query(mid_overlap_query, engine)
     if len(mid_results) != 0:
-        print.info("Found overlapping batch, aborting: \n{}".format(str(mid_results)))
+        print.info("Found overlapping batch in case 2, aborting: \n{}".format(str(mid_results)))
         return False
     
     return True
