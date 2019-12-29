@@ -7,7 +7,7 @@ import datetime
 from loguru import logger
 
 """     DATABASE    """
-engine = create_engine("mysql+mysqlconnector://{user}:{password}@{host}:{port}/{db}" \
+engine = create_engine("mysql+pymysql://{user}:{password}@{host}:{port}/{db}" \
                        .format(user=params.db_user, password=params.db_pass, host=params.db_host, port=params.db_port,
                                db=params.db_name))
 
@@ -62,7 +62,7 @@ def import_gnucash(fname, batch_id, start_date, end_date):
     df['Merchant'] = df['Description'].astype(str).apply(get_merchant)
     df['Description'] = df['Description'].astype(str).apply(get_descr)
     df['Account'] = df['Account'].apply(lambda x: params.accounts_map[x])
-    df['Amount'] = df['Amount'].apply(lambda x: x.replace(",", ""))
+    df['Amount'] = df['Amount'].astype(str).apply(lambda x: x.replace(",", ""))
     df = convert_amounts(df)
     table = 'Gnucash'
 
@@ -165,7 +165,7 @@ def dates_are_valid(start_date, end_date, source):
     mid_overlap_query = "SELECT * FROM Batch WHERE `Source` = '{source}' AND `StartDate` >= '{start_date}' AND `StartDate` <= '{end_date}'".format(source=source, start_date=start_date, end_date=end_date)
     mid_results = pd.read_sql_query(mid_overlap_query, engine)
     if len(mid_results) != 0:
-        print.info("Found overlapping batch in case 2, aborting: \n{}".format(str(mid_results)))
+        print("Found overlapping batch in case 2, aborting: \n{}".format(str(mid_results)))
         return False
     
     return True
@@ -183,7 +183,7 @@ def import_file(fname, source, start_date, end_date):
 
     # create new batch
     new_batch = pd.DataFrame(data={'StartDate': [start_date], 'EndDate': [end_date], 'Source': [source]}).to_sql(con=engine, name='Batch', if_exists='append', index=False)
-    get_id_query = "SELECT ID FROM Batch WHERE `StartDate` = '{start_date}' AND `EndDate` = '{end_date}'".format(start_date=start_date, end_date=end_date)
+    get_id_query = "SELECT ID FROM Batch WHERE `StartDate` = '{start_date}' AND `EndDate` = '{end_date}' AND `Source` = '{source}'".format(start_date=start_date, end_date=end_date, source=source)
     batch_id = pd.read_sql(get_id_query, engine).iloc[0]['ID']
     # TODO: must drop batch on failure
 

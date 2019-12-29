@@ -2,6 +2,7 @@ import argparse
 import importer
 import reconciler
 import db_setup
+import remover
 
 def main():
     parser = argparse.ArgumentParser()
@@ -24,6 +25,10 @@ def main():
     reconcile_parser.add_argument("--exact-only", action="store_true", dest="exact_only")
     reconcile_parser.add_argument("--reset-transactions", action="store_true", dest="reset_transactions")
 
+    # remove
+    remove_parser = subparsers.add_parser('remove')
+    remove_parser.add_argument("--batch-id", dest="batchid", required=True)
+
     args = parser.parse_args()
     if args.command == "create-tables":
         db_setup.create_tables(args.drop)
@@ -31,6 +36,8 @@ def main():
         importer.import_file(args.fname, args.source, args.start_date, args.end_date)
     elif args.command == "reconcile":
         reconciler.reconcile(args.exact_only, args.reset_transactions)
+    elif args.command == "remove":
+        remover.remove_batch(args.batchid)
 
 
 

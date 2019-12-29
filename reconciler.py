@@ -6,7 +6,7 @@ from loguru import logger
 import sys
 
 date_thresh = timedelta(days=params.date_threshold)
-engine = create_engine("mysql+mysqlconnector://{user}:{password}@{host}:{port}/{db}" \
+engine = create_engine("mysql+pymysql://{user}:{password}@{host}:{port}/{db}" \
                        .format(user=params.db_user, password=params.db_pass, host=params.db_host, port=params.db_port,
                                db=params.db_name))
 
@@ -50,10 +50,12 @@ def update_transaction_id(table, table_id, transaction_id):
 
 
 def next_transaction_id():
-    request_name = "NEXT VALUE FOR TransactionIDSequence"
-    query = "SELECT " + request_name
+    # todo: fix this
+    create_query = "INSERT INTO TransactionIDSequence VALUES ()"
+    get_query = "SELECT MAX(TransactionID) FROM TransactionIDSequence"
     with engine.connect() as conn:
-        return conn.execute(query).fetchone()[request_name]
+        conn.execute(create_query)
+        return conn.execute(get_query).fetchone()["MAX(TransactionID)"]
 
 
 def multimatch_input_is_valid(val, matches):
@@ -108,6 +110,7 @@ def get_combinations(amt_remaining, unmatched, cur_set, valid_sets):
             logger.debug("amount matches amount remaining, adding current set to valid sets")
             cur_set.append(entry)
             valid_sets.append(cur_set)
+            break
         elif abs(amt) < abs(amt_remaining):
             logger.debug("amount is less than amount remaining, moving to current set and continuing")
             cur_set.append(entry)
@@ -132,7 +135,7 @@ def find_sums(entry, table):
     if (entry['Amount']) > 0:
         query = query + " AND `Amount` > 0"
     else:
-        query = query + "AND `Amount` < 0"
+        query = query + "AND `Amount` <= 0"
     unmatched = pd.read_sql(query, engine)
     return get_combinations(entry['Amount'], unmatched, [], [])
 
@@ -195,7 +198,7 @@ def process_no_matches(source, source_table, ignore_missing=False):
 
     else:
         if not ignore_missing:
-            logger.info("No entry found for:\n{}, press enter to continue", source)
+            logger.info("No entry found for the following transaction in {table}:\n{entry}, press any key to continue", table=source_table, entry=source)
             input()
 
 
@@ -244,3 +247,5 @@ def reconcile(exact_only, reset_transactions):
     for idx, inst_entry in get_unmatched_institution().iterrows():
         matches = find_identical(inst_entry, target_table="Gnucash")
         process_matches(inst_entry, matches, "Institution", exact_only)
+
+    logger.info("Done reconciling")
