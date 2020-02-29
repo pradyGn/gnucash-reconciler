@@ -4,6 +4,8 @@ import pandas as pd
 from datetime import timedelta
 from loguru import logger
 import sys
+from math import factorial
+import itertools
 
 date_thresh = timedelta(days=params.date_threshold)
 engine = create_engine("mysql+pymysql://{user}:{password}@{host}:{port}/{db}" \
@@ -98,32 +100,29 @@ def process_multiple_matches(source, matches, source_table):
 
     print("\n")
 
+def get_combinations(unmatched):
+    n = len(unmatched)
+    rmax = min(params.max_combination_size, n)
+    while sum([factorial(n) / (factorial(r) * factorial(n-r)) for r in range(2,rmax+1)]) > params.max_combinations:
+        rmax -= 1
+    iterators = []
+    for r in range(2,rmax+1):
+        iterators.append(itertools.combinations(unmatched.itertuples(), r))
+    return itertools.chain(*iterators)
 
-def get_combinations(amt_remaining, unmatched, cur_set, valid_sets):
-    logger.debug("unmatched is size {}".format(len(unmatched)))
-    cur_set = cur_set.copy()
-    logger.debug("new method call, amount remaining is {}, cur_set is {}, have {} valid sets".format(amt_remaining, [entry['Amount'] for entry in cur_set], len(valid_sets)))
-    for idx, entry in unmatched.iterrows():
-        amt = entry['Amount']
-        logger.debug("checking for amount {}".format(entry['Amount']))
-        if abs(amt - amt_remaining) < float_err:
-            logger.debug("amount matches amount remaining, adding current set to valid sets")
-            cur_set.append(entry)
-            valid_sets.append(cur_set)
-            break
-        elif abs(amt) < abs(amt_remaining):
-            logger.debug("amount is less than amount remaining, moving to current set and continuing")
-            cur_set.append(entry)
-            try:
-                unmatched.drop(idx, inplace=True)
-            except KeyError:
-                logger.debug("tried to delete unmatched index {} but was already deleted".format(idx))
-            valid_sets.extend(get_combinations(amt_remaining - amt, unmatched, cur_set, []))
-        else:
-            try:
-                unmatched.drop(idx, inplace=True)
-            except KeyError:
-                logger.debug("tried to delete unmatched index {} but was already deleted".format(idx))
+
+def get_summing_sets(target_amount, unmatched):
+    logger.debug("Checking for combinations of {} unmatched records".format(len(unmatched)))
+    combinations_iter = get_combinations(unmatched)
+    valid_sets = []
+    for combination in combinations_iter:
+        total_amount = 0.0
+        for entry in combination:
+            total_amount += entry.Amount
+        if target_amount == total_amount:
+            # convert to a df
+            indices = list(map(lambda x: x.Index, combination))
+            valid_sets.append(unmatched.loc[indices])
     return valid_sets
 
 
@@ -137,12 +136,12 @@ def find_sums(entry, table):
     else:
         query = query + "AND `Amount` <= 0"
     unmatched = pd.read_sql(query, engine)
-    return get_combinations(entry['Amount'], unmatched, [], [])
+    return get_summing_sets(entry['Amount'], unmatched)
 
 
 def link_multiple(table, summing_entries, transaction_id):
-    for entry in summing_entries:
-        update_transaction_id(table, entry['ID'], transaction_id)
+    for entry in summing_entries.itertuples():
+        update_transaction_id(table, entry.ID, transaction_id)
 
 
 def multiple_sums_input_is_valid(val, max_option):
@@ -159,6 +158,7 @@ def process_no_matches(source, source_table, ignore_missing=False):
 
     target_table = source_to_target_table(source_table)
     potentials = find_sums(source, target_table)
+
     if len(potentials) == 1:
         print("\n\n\nI didn't find a single entry to match, but did find one set of entries that sum to the " +
               "desired amount. Source transaction:")
@@ -198,7 +198,7 @@ def process_no_matches(source, source_table, ignore_missing=False):
 
     else:
         if not ignore_missing:
-            logger.info("No entry found for the following transaction in {table}:\n{entry}, press any key to continue", table=source_table, entry=source)
+            logger.info("No entry found for the following transaction in (entry is in {table}):\n{entry}, press any key to continue", table=source_table, entry=source)
             input()
 
 

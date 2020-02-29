@@ -9,3 +9,5 @@ gnucash_name = 'Gnucash'
 checking_name = 'ChaseChecking'
 credit_name = 'FreedomCredit'
 date_threshold = 4
+max_combinations = 5_000_000
+max_combination_size = 10

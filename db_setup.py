@@ -74,15 +74,19 @@ sequence_statement = """CREATE TABLE `TransactionIDSequence` (
 
 
 def create_tables(drop = False):
-    with engine.connect() as conn:
-        if drop:
-            conn.execute("DROP TABLE IF EXISTS `Gnucash`;")
-            conn.execute("DROP TABLE IF EXISTS `Institution`;")
-            conn.execute("DROP TABLE IF EXISTS `TransactionIDSequence`;")
-            conn.execute("DROP TABLE IF EXISTS `Batch`;")
-            conn.execute("DROP FUNCTION IF EXISTS `ValidateBatchDateRange`;")
-        conn.execute(gnucash_statement)
-        conn.execute(institution_statement)
-        conn.execute(sequence_statement)
-        conn.execute(datefunc_statement)
-        conn.execute(batch_statement)
+  if drop:
+    if input("Drop flag will ERASE ALL EXISTING DATA. Type 'yes' to continue: ") != "yes":
+      return
+
+  with engine.connect() as conn:
+      if drop:
+          conn.execute("DROP TABLE IF EXISTS `Gnucash`;")
+          conn.execute("DROP TABLE IF EXISTS `Institution`;")
+          conn.execute("DROP TABLE IF EXISTS `TransactionIDSequence`;")
+          conn.execute("DROP TABLE IF EXISTS `Batch`;")
+          conn.execute("DROP FUNCTION IF EXISTS `ValidateBatchDateRange`;")
+      conn.execute(gnucash_statement)
+      conn.execute(institution_statement)
+      conn.execute(sequence_statement)
+      conn.execute(datefunc_statement)
+      conn.execute(batch_statement)
