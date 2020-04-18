@@ -119,7 +119,7 @@ def get_summing_sets(target_amount, unmatched):
         total_amount = 0.0
         for entry in combination:
             total_amount += entry.Amount
-        if target_amount == total_amount:
+        if abs(total_amount - target_amount) < float_err:
             # convert to a df
             indices = list(map(lambda x: x.Index, combination))
             valid_sets.append(unmatched.loc[indices])
