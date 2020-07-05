@@ -34,8 +34,8 @@ def get_unmatched_institution():
 
 
 def find_identical(entry, target_table):
-    query = """SELECT * FROM `{table}` WHERE `Date` BETWEEN '{date_beg}' AND '{date_end}' AND `Amount` = '{amount}' AND `Account` = '{account}' AND `TransactionID` IS NULL""" \
-        .format(table=target_table, account=entry['Account'], amount=entry['Amount'],
+    query = """SELECT * FROM `{table}` WHERE `Date` BETWEEN '{date_beg}' AND '{date_end}' AND `Amount` = '{amount}' AND `AccountID` = '{account}' AND `TransactionID` IS NULL""" \
+        .format(table=target_table, account=entry['AccountID'], amount=entry['Amount'],
                 date_beg=entry['Date'] - date_thresh,
                 date_end=entry['Date'] + date_thresh)
     return pd.read_sql(query, engine)
@@ -128,9 +128,9 @@ def get_summing_sets(target_amount, unmatched):
 
 def find_sums(entry, table):
     query = "SELECT * FROM `{table}` WHERE `Date` BETWEEN '{date_beg}' AND '{date_end}' AND TransactionID IS NULL AND \
-    `Account` = '{account}'".format(table=table, date_beg=entry['Date'] - date_thresh,
+    `AccountID` = '{account}'".format(table=table, date_beg=entry['Date'] - date_thresh,
                                    date_end=entry['Date'] + date_thresh,
-                                   account=entry['Account'])
+                                   account=entry['AccountID'])
     if (entry['Amount']) > 0:
         query = query + " AND `Amount` > 0"
     else:

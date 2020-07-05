@@ -4,7 +4,7 @@ with open("db_access.txt", 'r') as f:
 db_name = "finance"
 db_host = "localhost"
 db_port = 3306
-accounts_map = {"Checking Account": "Checking", "Credit Card": "FreedomCredit"}
+# accounts_map = {"Checking Account": "Checking", "Credit Card": "FreedomCredit"}
 gnucash_name = 'Gnucash'
 checking_name = 'ChaseChecking'
 credit_name = 'FreedomCredit'
