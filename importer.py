@@ -5,6 +5,7 @@ import csv
 from sqlalchemy import create_engine
 import datetime
 from loguru import logger
+import remover
 
 """     DATABASE    """
 engine = create_engine("mysql+pymysql://{user}:{password}@{host}:{port}/{db}" \
@@ -60,7 +61,10 @@ def gnucash_mapper(fname, account_id, batch_id, start_date, end_date):
     accounts_map = create_accounts_map()
 
     df = pd.read_csv(fname).fillna(method='ffill')
+    original_length = len(df)
     df = df[df['Account Name'].isin(accounts_map.keys())]
+    if len(df) < original_length:
+        logger.warning(f"Dropped {original_length - len(df)} rows with unknown account names")
     df = df.filter(items=['Date', 'Description', 'Amount Num.', 'Account Name']) \
         .rename(columns={'Amount Num.': 'Amount', 'Account Name': 'Account'})
     df = convert_dates(df, ('Date',))
@@ -143,7 +147,7 @@ def chase_checking_mapper(fname, account_id, batch_id, start_date, end_date):
     df = pd.DataFrame(df)
     df = df.filter(items=['Posting Date', 'Description', 'Amount']) \
         .rename(columns={'Posting Date': 'PostingDate'})
-    df['TransactionDate'] = df.apply(lambda row : parse_chase_date(row), axis=1)
+    df['TransactionDate'] = df.apply(parse_chase_date, axis=1)
     df = convert_dates(df, ('PostingDate', 'TransactionDate'))
     df['Date'] = df.apply(lambda row : get_best_date(row), axis=1)
 
@@ -244,9 +248,13 @@ def import_file(fpath, source, account_name_or_id, infer, start_date, end_date):
     # TODO: must drop batch on failure
 
     # run import
-    if source == "Gnucash":
-        mapper_name = source
-    else:
-        mapper_name = pd.read_sql(f"SELECT `Mapper` from Accounts WHERE ID = {account_id}", engine).iloc[0]['Mapper']
-    mapper = mapper_dict[mapper_name]
-    mapper(fpath, account_id, batch_id, start_date, end_date)
+    try:
+        if source == "Gnucash":
+            mapper_name = source
+        else:
+            mapper_name = pd.read_sql(f"SELECT `Mapper` from Accounts WHERE ID = {account_id}", engine).iloc[0]['Mapper']
+        mapper = mapper_dict[mapper_name]
+        mapper(fpath, account_id, batch_id, start_date, end_date)
+
+    except Exception:
+        remover.remove_batch(batch_id, quiet=True)

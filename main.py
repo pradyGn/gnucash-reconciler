@@ -43,5 +43,5 @@ def main():
         remover.remove_batch(args.batchid)
 
 
-
-main()
+if __name__ == "__main__":
+    main()

@@ -22,15 +22,6 @@ def other_table(original_table):
         raise ValueError("Bad table name {} supplied".format(original_table))
 
 
-def get_table_to_remove(batch_id):
-    query = "SELECT `Source` FROM Batch WHERE `ID` = {batch_id}".format(batch_id=batch_id)
-    with engine.connect() as conn:
-        source = conn.execute(query).fetchone()['Source']
-    if source == "gnucash":
-        return "Gnucash"
-    else:
-        return "Institution"
-
 def unlink_transactions_in_other_table(main_table, linked_table, batch_id):
     transaction_ids_query = "SELECT `TransactionID` FROM {table} WHERE `BatchID` = {batch_id}".format(table=main_table, batch_id=batch_id)
     update_query = "UPDATE {table} SET TransactionID = NULL WHERE TransactionID IN ({transaction_ids_subquery})".format(table=linked_table, transaction_ids_subquery=transaction_ids_query)
@@ -64,17 +55,18 @@ def remove_batch_entry(batch_id):
     return False
 
 
-def remove_batch(batch_id):
+def remove_batch(batch_id, quiet=False):
     # validate
     entry = get_batch_entry(batch_id)
-    print(entry)
-    response = input("Are you sure you want to remove the entry above? Type 'yes' to continue: ")
-    if response != "yes":
-        print("Aborting")
-        return
+    if not quiet:
+        print(entry)
+        response = input("Are you sure you want to remove the entry above? Type 'yes' to continue: ")
+        if response != "yes":
+            print("Aborting")
+            return
 
     # get tables
-    main_table = get_table_to_remove(batch_id)
+    main_table = entry['Source']
     linked_table = other_table(main_table)
 
     # unlink all transaction ids in other table
